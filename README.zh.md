@@ -5,7 +5,7 @@
 - 关于tars的整体架构和设计理念，请阅读 [Tars介绍](https://github.com/TarsCloud/Tars/blob/master/Introduction.md)
 
 ## 功能特性
-- Tars2go工具: tars文件自动生成并转换为go语言，包含用go语言实现的RPC服务端/客户端代码
+- **Tars2go**工具: tars文件自动生成并转换为go语言，包含用go语言实现的RPC服务端/客户端代码
 - go语言版本的tars的序列化和反序列化包
 - 服务端支持心跳上报，统计监控上报，自定义命令处理，基础日志
 - 客户端支持直接连接和路由访问，自动重新连接，定期刷新节点状态以及支持UDP/TCP协议
@@ -40,18 +40,14 @@
 有关tars协议的更多详细信息, 请查看 https://github.com/TarsCloud/TarsTup/blob/master/docs-en/tars_tup.md
 
 ```
-	
 	module TestApp
 	{
-	
-	interface Hello
-	{
-	    int test();
-	    int testHello(string sReq, out string sRsp);
-	};
-	
+	    interface Hello
+	    {
+	        int test();
+	        int testHello(string sReq, out string sRsp);
+	    };
 	}; 
-	
 ```
 	
 
@@ -61,6 +57,21 @@
 编译并安装tars2go工具
 
 	go install $GOPATH/src/github.com/TarsCloud/TarsGo/tars/tools/tars2go
+
+**在CentOS7上遇到以下问题**
+
+```shell
+can't load package: package 
+/home/luojie/gopath/src/github.com/TarsCloud/TarsGo/tars/tools/tars2go: 
+import "/home/luojie/gopath/src/github.com/TarsCloud/TarsGo/tars/tools/tars2go": 
+cannot import absolute path
+```
+**解决办法**  
+    进入tars2go目录下面，执行下面命令，生成tars2go工具
+```shell
+$ go build && go install
+```    
+
 
 ##### 1.2.2 编译tars文件并转成go文
 	tars2go --outdir=./vendor hello.tars
@@ -97,8 +108,6 @@ func main() { //Init servant
     app.AddServant(imp, cfg.App+"."+cfg.Server+".HelloObj") //Register Servant
     tars.Run()
 }
-
-
 ```
 
 说明:
@@ -161,30 +170,29 @@ type serverConfig struct {
 - Enableset: 如果使用了set，则为True.
 - Setdivision: 指定哪个set，如gray.sz.*
 
-如下是一个服务端配置的例子:
+如下是服务端配置的文件**config.conf**:
 ```xml
 <tars>
-  <application>
-      enableset=Y
-      setdivision=gray.sz.*
-    <server>
-       node=tars.tarsnode.ServerObj@tcp -h 10.120.129.226 -p 19386 -t 60000
-       app=TestApp
-       server=HelloServer
-       localip=10.120.129.226
-       local=tcp -h 127.0.0.1 -p 20001 -t 3000
-       basepath=/usr/local/app/tars/tarsnode/data/TestApp.HelloServer/bin/
-       datapath=/usr/local/app/tars/tarsnode/data/TestApp.HelloServer/data/
-       logpath=/usr/local/app/tars/app_log/
-       logsize=10M
-       config=tars.tarsconfig.ConfigObj
-       notify=tars.tarsnotify.NotifyObj
-       log=tars.tarslog.LogObj
-       #timeout for deactiving , ms.
-       deactivating-timeout=2000
-       logLevel=DEBUG
-    </server>
-  </application>
+        <application>
+                <server>
+                        app=TestApp
+                        server=HelloServer
+                        local=tcp -h 127.0.0.1 -p 20000 -t 30000
+						logpath=/tmp
+                        <TestApp.HelloServer.HelloObjAdapter>
+                                allow
+                                endpoint=tcp -h 127.0.0.1 -p 20001 -t 60000
+                                maxconns=200000
+                                protocol=tars
+                                queuecap=10000
+                                queuetimeout=60000
+                                servant=TestApp.HelloServer.HelloObj
+                                shmcap=0
+                                shmkey=0
+                                threads=1
+                        </TestApp.HelloServer.HelloObjAdapter>
+                </server>
+        </application>
 </tars>
 
 ```
@@ -227,64 +235,16 @@ app.AddServant(imp, cfg.App+"."+cfg.Server+".HelloObj")完成HelloObj的适配�
 #### 1.6 服务端启动 
 
 如下命令用于启动服务端：
-```
-./HelloServer --config=config.conf
+``` bash
+$ ./HelloServer --config=config.conf &
 ```
 请参阅下面的config.conf的完整示例，稍后我们将解释客户端配置。
-
-
-```xml
-<tars>
-  <application>
-    enableset=n
-    setdivision=NULL
-    <server>
-       node=tars.tarsnode.ServerObj@tcp -h 10.120.129.226 -p 19386 -t 60000
-       app=TestApp
-       server=HelloServer
-       localip=10.120.129.226
-       local=tcp -h 127.0.0.1 -p 20001 -t 3000
-       basepath=/usr/local/app/tars/tarsnode/data/TestApp.HelloServer/bin/
-       datapath=/usr/local/app/tars/tarsnode/data/TestApp.HelloServer/data/
-       logpath=/usr/local/app/tars/app_log/
-       logsize=10M
-       config=tars.tarsconfig.ConfigObj
-       notify=tars.tarsnotify.NotifyObj
-       log=tars.tarslog.LogObj
-       deactivating-timeout=2000
-       logLevel=DEBUG
-       <TestApp.HelloServer.HelloObjAdapter>
-            allow
-            endpoint=tcp -h 10.120.129.226 -p 20001 -t 60000
-            handlegroup=TestApp.HelloServer.HelloObjAdapter
-            maxconns=200000
-            protocol=tars
-            queuecap=10000
-            queuetimeout=60000
-            servant=TestApp.HelloServer.HelloObj
-            threads=5
-       </TestApp.HelloServer.HelloObjAdapter>
-    </server>
-    <client>
-       locator=tars.tarsregistry.QueryObj@tcp -h 10.120.129.226 -p 17890
-       sync-invoke-timeout=3000
-       async-invoke-timeout=5000
-       refresh-endpoint-interval=60000
-       report-interval=60000
-       sample-rate=100000
-       max-sample-count=50
-       asyncthread=3
-       modulename=TestApp.HelloServer
-    </client>
-  </application>
-</tars>
-```
 
 
 ### 2 客户端
 用户可以轻松编写客户端代码，而无需编写任何指定协议的通信代码.
 #### 2.1 客户端例子
-请参阅下面的一个客户端例子:
+请参阅下面的客户端例子:
 
 ```go
 
@@ -300,18 +260,18 @@ var comm *tars.Communicator
 
 func main() {
     comm = tars.NewCommunicator()
-    obj := "TestApp.TestServer.HelloObj@tcp -h 127.0.0.1 -p 10015 -t 60000"
+    obj := "TestApp.TestServer.HelloObj@tcp -h 127.0.0.1 -p 20001 -t 60000"
     app := new(TestApp.Hello)
     comm.StringToProxy(obj, app)
 	var req string="Hello Wold"
     var res string
-    ret, err := app.TestHello(req, &out)
+    ret, err := app.TestHello(req, &res)
     if err != nil {
         fmt.Println(err)
         return
     }   
-    fmt.Println(ret, out)
-
+    fmt.Println(ret, res)
+}
 ```
 
 说明:
@@ -324,12 +284,18 @@ func main() {
 - req, res: 在tars文件中定义的输入和输出参数,用于在TestHello方法中.
 - app.TestHello用于调用tars文件中定义的方法，并返回ret和err.
 
+**执行**：
+```bash
+$ go run client.go
+0 Hello World
+```
+
+
 #### 2.2 通信器
 通信器是为客户端发送和接收包的一组资源，其最终管理每个对象的socket通信。在一个程序中你只需要一个通信器。
 
-```
-var comm *tars.Communicato
-comm = tars.NewCommunicator()
+```go
+comm := tars.NewCommunicator()
 comm.SetProperty("property", "tars.tarsproperty.PropertyObj")
 comm.SetProperty("locator", "tars.tarsregistry.QueryObj@tcp -h ... -p ...")
 ```
@@ -395,11 +361,12 @@ comm.SetProperty("locator", "tars.tarsregistry.QueryObj@tcp -h ... -p ...")
 
 ##### 2.4.1 寻址模式简介. 
 
-Tars服务的寻址模式通常可以分为两种方式：服务名称在master上注册了，服务名称未在master上注册。 master是专用于注册服务节点信息的名字服务（路由服务）。
+Tars服务的寻址模式通常可以分为两种方式：服务名称在master上注册了，服务名称未在master上注册。  
+master是专用于**注册服务节点信息的名字服务**（路由服务）。
 
 把服务名添加到名字服务中是通过操作管理平台实现。
 
-对于未在master中注册的服务，可以将其分类为直接寻址，即在调用服务之前需要指定服务提供者的IP地址。 客户端需要在调用服务时指定HelloObj对象的特定地址，即Test.HelloServer.HelloObj@tcp -h 127.0.0.1 -p 9985
+对于未在master中注册的服务，可以将其分类为**直接寻址**，即在调用服务之前需要指定服务提供者的IP地址。 客户端需要在调用服务时指定HelloObj对象的特定地址，即Test.HelloServer.HelloObj@tcp -h 127.0.0.1 -p 9985
 
 Test.HelloServer.HelloObj: 对象名
 
@@ -410,8 +377,8 @@ tcp:Tcp协议
 -p:端口,这里是9985
 
 如果HelloServer在两台服务器上运行，则应用程序初始化如下:
-```
-    obj:= "Test.HelloServer.HelloObj@tcp -h 127.0.0.1 -p 9985:tcp -h 192.168.1.1 -p 9983"
+```go
+    obj := "Test.HelloServer.HelloObj@tcp -h 127.0.0.1 -p 9985:tcp -h 192.168.1.1 -p 9983"
     app := new(TestApp.Hello)
     comm.StringToProxy(obj, app)
 ```
@@ -420,12 +387,11 @@ HelloObj的地址设置为两个服务器的地址。 此时，请求将被分�
 对于在master中注册的服务，将根据服务名称对服务进行寻址。 当客户端请求服务时，它不需要指定HelloServer的特定地址，但是在生成通信器或初始化通信器时需要指定`registry`的地址。
 
 以下通过设置通信器的参数显示主控的地址：
-```
-var *tars.Communicator
-comm = tars.NewCommunicator()
+```go
+comm := tars.NewCommunicator()
 comm.SetProperty("locator", "tars.tarsregistry.QueryObj@tcp -h ... -p ...")
 ```
-由于客户端需要依赖主控的地址，因此主控还必须具有容错能力。 主控的容错方法与上面相同，即指定了两个主控的地址。
+由于客户端需要依赖主控的地址，因此主控还必须具有容错能力。 **主控的容错方法与上面相同，即指定了两个主控的地址。**
 ##### 2.4.2. 单向调用
 TODO. tarsgo暂未支持.
 
@@ -445,15 +411,15 @@ func main() {
     obj := "TestApp.TestServer.HelloObj@tcp -h 127.0.0.1 -p 10015 -t 60000"
     app := new(TestApp.Hello)
     comm.StringToProxy(obj, app)
-	var req string="Hello Wold"
+	var req string = "Hello Wold"
     var res string
-    ret, err := app.TestHello(req, &out)
+    ret, err := app.TestHello(req, &res)
     if err != nil {
         fmt.Println(err)
         return
     }   
-    fmt.Println(ret, out)
-
+    fmt.Println(ret, res)
+}
 ```
 
 ##### 2.4.4 异步调用
@@ -468,7 +434,7 @@ import (
     "time"
     "TestApp"
 )
-var *tars.Communicator
+var comm *tars.Communicator
 func main() {
     comm = tars.NewCommunicator()
     obj := "TestApp.TestServer.HelloObj@tcp -h 127.0.0.1 -p 10015 -t 60000"
@@ -477,15 +443,15 @@ func main() {
 	go func(){
 		var req string="Hello Wold"
     	var res string
-    	ret, err := app.TestHello(req, &out)
+    	ret, err := app.TestHello(req, &res)
     	if err != nil {
         	fmt.Println(err)
         	return
     	} 
-		fmt.Println(ret, out)
+		fmt.Println(ret, res)
 	}()
     time.Sleep(1)  
-
+}
 ```
 
 ##### 2.4.5 通过set调用
@@ -569,9 +535,12 @@ func RegisterAdmin(name string, fn adminFn)
 
 ### 6 统计上报
 
-上报统计信息是向Tars框架内的tarsstat上报耗时信息和其他信息。 无需用户开发，只需在程序初始化期间正确设置相关信息后，就可以在框架内自动报告（包括客户端和服务端）。
+上报统计信息是向Tars框架内的tarsstat上报耗时信息和其他信息。 
+无需用户开发，只需在程序初始化期间正确设置相关信息后，就可以在框架内自动报告（包括客户端和服务端）。
 
-客户端调用上报接口后，会暂时将信息存储在内存中，当到达某个时间点时，会向tarsstat服务上报（默认为1分钟上报一次）。 我们将两个上报时间点之间的时间间隔称为统计间隔，在统计间隔中会执行诸如聚合和比较相同key的一些操作。
+客户端调用上报接口后，会暂时将信息存储在内存中，当到达某个时间点时，
+会向tarsstat服务上报（默认为1分钟上报一次）。 我们将两个上报时间点之间的时间间隔称为统计间隔，
+在统计间隔中会执行诸如聚合和比较相同key的一些操作。
 示例代码如下：
 ```go
 //for error
