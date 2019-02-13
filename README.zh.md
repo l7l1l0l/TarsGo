@@ -15,7 +15,6 @@
 - 提供 protocol buffers 支持， 详见 [pb2tarsgo](tars/tools/pb2tarsgo/README.md) 
 
 
-
 ## 安装
 - 对于安装OSS和其他基本服务, 请[安装文档](https://github.com/TarsCloud/Tars/blob/master/Install.zh.md)，
 快速安装，请查看[快速部署](https://github.com/TarsCloud/Tars/tree/master/deploy)
@@ -40,14 +39,14 @@
 有关tars协议的更多详细信息, 请查看 https://github.com/TarsCloud/TarsTup/blob/master/docs-en/tars_tup.md
 
 ```
-	module TestApp
-	{
-	    interface Hello
-	    {
-	        int test();
-	        int testHello(string sReq, out string sRsp);
-	    };
-	}; 
+module TestApp
+{
+    interface Hello
+    {
+        int test();
+        int testHello(string sReq, out string sRsp);
+    };
+}; 
 ```
 	
 

@@ -11,12 +11,13 @@ Golang环境准备，tarsgo要求golang版本在1.9.x及以上。
 编译tars协议转Golang工具：
 
 ```shell
-cd $GOPATH/src/github.com/TarsCloud/TarsGo/tars/tools/tars2go && go build . 
-
-cp tars2go $GOPATH/bin
+cd $GOPATH/src/github.com/TarsCloud/TarsGo/tars/tools/tars2go && go build && go install
 ```
 
-检查下GOPATH路径下tars是否安装成功。
+检查下tars2go是否安装成功。
+```bash
+$ whereis tar2go
+```
 
 ## 服务命名
 
@@ -30,11 +31,12 @@ cp tars2go $GOPATH/bin
 
 说明：
 
-一个Server可以包含多个Servant，系统会使用服务的App + Server + Servant，进行组合，来定义服务在系统中的路由名称，称为路由Obj，其名称在整个系统中必须是唯一的，以便在对外服务时，能唯一标识自身。
+一个Server可以包含多个Servant，系统会使用服务的App + Server + Servant，进行组合，来定义服务在系统中的路由名称，称为路由Obj，
+其名称在整个系统中必须是唯一的，以便在对外服务时，能唯一标识自身。
 
 因此在定义APP时，需要注意APP的唯一性。
 
-例如：TestApp.HelloServer.HelloObj。
+例如：**TestApp.HelloServer.HelloObj**。
 
 
 
@@ -168,10 +170,10 @@ import (
 )
 
 func main() { //Init servant
-	imp := new(SayHelloImp)                                    //New Imp
-	app := new(TestApp.SayHello)                                 //New init the A JCE
-	cfg := tars.GetServerConfig()                               //Get Config File Object
-	app.AddServant(imp, cfg.App+"."+cfg.Server+".SayHelloObj") //Register Servant
+	imp := new(SayHelloImp)                                         //New Imp
+	app := new(TestApp.SayHello)                                    //New init the A JCE
+	cfg := tars.GetServerConfig()                                   //Get Config File Object
+	app.AddServant(imp, cfg.App+"."+cfg.Server+".SayHelloObj")      //Register Servant
 	tars.Run()
 }
 ```
